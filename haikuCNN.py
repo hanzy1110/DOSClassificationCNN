@@ -3,8 +3,9 @@ import haiku as hk
 import matplotlib.pyplot as plt
 
 import jax
-from jax import numpy as jnp
 import tqdm
+import jax.numpy as jnp
+import numpy as np
 
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
@@ -12,8 +13,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 
+def save_model(params):
+    np.savez(os.path.join('model', 'savedModel.npz'), params)
 
-
+def loadModel():
+    return np.loadz(os.path.join('model', 'savedModel.npz'))
 
 class CNN(hk.Module):
     def __init__(self):
@@ -72,27 +76,29 @@ epochs = 25
 batch_size = 256
 learning_rate = jnp.array(1/1e4)
 
-for i in tqdm.tqdm(range(1, epochs+1)):
-    batches = jnp.arange((X_train.shape[0]//batch_size)+1) ### Batch Indices
+with tqdm.tqdm(range(1, epochs+1)) as pbar:
 
-    losses = [] ## Record loss of each batch
-    for batch in batches:
-        if batch != batches[-1]:
-            start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
-        else:
-            start, end = int(batch*batch_size), None
+    for i in pbar:
+        batches = jnp.arange((X_train.shape[0]//batch_size)+1) ### Batch Indices
 
-        X_batch, Y_batch = X_train[start:end], Y_train[start:end] ## Single batch of data
+        losses = [] ## Record loss of each batch
+        for batch in batches:
+            if batch != batches[-1]:
+                start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
+            else:
+                start, end = int(batch*batch_size), None
 
-        loss, param_grads = value_and_grad(CrossEntropyLoss)(params, X_batch, Y_batch)
-        #print(param_grads)
-        params = jax.tree_map(UpdateWeights, params, param_grads) ## Update Params
-        losses.append(loss) ## Record Loss
-        
-        if epoch%10 == 0:
-            pass
+            X_batch, Y_batch = X_train[start:end], Y_train[start:end] ## Single batch of data
 
-    print("CrossEntropy Loss : {:.3f}".format(jnp.array(losses).mean()))
+            loss, param_grads = value_and_grad(CrossEntropyLoss)(params, X_batch, Y_batch)
+            #print(param_grads)
+            params = jax.tree_map(UpdateWeights, params, param_grads) ## Update Params
+            losses.append(loss) ## Record Loss
+            
+            if i%10 == 0:
+                save_model(params)
+
+        pbar.set_description("CrossEntropy Loss : {:.3f}".format(jnp.array(losses).mean()))
 
 def MakePredictions(weights, input_data, batch_size=32):
     batches = jnp.arange((input_data.shape[0]//batch_size)+1) ### Batch Indices
@@ -122,9 +128,8 @@ test_preds = test_preds.argmax(axis=1)
 print("Train Accuracy : {:.3f}".format(accuracy_score(Y_train, train_preds)))
 print("Test  Accuracy : {:.3f}".format(accuracy_score(Y_test, test_preds)))
 
-
 print("Test Classification Report ")
 print(classification_report(Y_test, test_preds))
 
 plt.plot(losses)
-plt.savefig()
+plt.savefig(os.path.join('plots', 'loss.jpg'))
