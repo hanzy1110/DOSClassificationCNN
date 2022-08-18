@@ -8,6 +8,7 @@ def main():
     dos = DOSProcedure(selectedClases, kj, rj, maxThresh=100)
     dos.mainLoop()
     return dos.labelOverSampledTupsMap
+
 if __name__=="__main__":
     lOSTMap = main()
     # fire.Fire(main) 

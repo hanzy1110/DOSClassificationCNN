@@ -149,8 +149,10 @@ class DOSProcedure:
 
         for label, tups in self.labelOverloadedTupsMap.items():
             wjs = self.labelWeightVMap[label]
-            aux = [self.vOverSampler(tup, wjs) for tup in tups]
-            self.labelOverSampledTupsMap[label] = functools.reduce(iconcat, aux, []) 
+            for wj in wjs:
+                aux = [self.toOverSampledTuple(tup, wj) for tup in tups]
+                # self.labelOverSampledTupsMap[label] = functools.reduce(iconcat, aux, []) 
+                self.labelOverSampledTupsMap[label] = aux
 
     
     @staticmethod
