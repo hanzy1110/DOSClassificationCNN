@@ -1,4 +1,5 @@
 import os
+import pickle
 import haiku as hk
 import matplotlib.pyplot as plt
 
@@ -13,6 +14,26 @@ from src.loadDataset import loadDataset, flattenDataset, imbalanceDataset
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
+
+
+def save(ckpt_dir: str, state) -> None:
+    with open(os.path.join(ckpt_dir, "arrays.npy"), "wb") as f:
+        for x in jax.tree_leaves(state):
+            np.save(f, x, allow_pickle=False)
+
+    tree_struct = jax.tree_map(lambda t: 0, state)
+    with open(os.path.join(ckpt_dir, "tree.pkl"), "wb") as f:
+        pickle.dump(tree_struct, f)
+
+def restore(ckpt_dir):
+    with open(os.path.join(ckpt_dir, "tree.pkl"), "rb") as f:
+        tree_struct = pickle.load(f)
+
+    leaves, treedef = jax.tree_flatten(tree_struct)
+    with open(os.path.join(ckpt_dir, "arrays.npy"), "rb") as f:
+        flat_state = [np.load(f) for _ in leaves]
+
+    return jax.tree_unflatten(treedef, flat_state)
 
 def save_model(params):
     np.savez(os.path.join('model', 'savedModel.npz'), params)
@@ -46,9 +67,11 @@ def UpdateWeights(weights,gradients, learning_rate):
     return weights - learning_rate * gradients
 
 class TrainingLoop:
-    def __init__(self, CNN):
+    def __init__(self, CNN, selectedClases):
         self.conv_net = hk.transform(CNN)
         self.rng = jax.random.PRNGKey(42) ## Reproducibility ## Initializes model with same weights each time.
+        self.getDataset(selectedClases)
+        params = self.conv_net.init(self.rng, self.X_train[:5])
 
     def getDataset(self,selectedClases):
         dataDict = loadDataset()
@@ -61,11 +84,13 @@ class TrainingLoop:
         self.X_test = dataDict['test']['X']
         self.Y_test = dataDict['test']['Y']
 
-    def getModel(self):
-        if os.path.exists(os.path.join('model', 'savedModel.npz')):
-            self.params = loadModel()
+    def getModel(self, epochs=30, batch_size=256, learning_rate=1/1e4):
+        if os.path.exists(os.path.join('model', 'arrays.npy')):
+            self.params = restore('model')
         else:
-            self.params = self.trainingLoop()
+            self.params = self.trainingLoop(epochs=epochs, 
+                                            batch_size=batch_size, 
+                                            learning_rate=learning_rate)
 
     def CrossEntropyLoss(self, weights, input_data, actual, classes=10):
         preds = self.conv_net.apply(weights, self.rng, input_data)
@@ -74,11 +99,8 @@ class TrainingLoop:
         return - jnp.sum(one_hot_actual * log_preds)
 
 
-    def trainingLoop(self,):
+    def trainingLoop(self,epochs=30, batch_size=256, learning_rate=1/1e4):
         params = self.conv_net.init(self.rng, self.X_train[:5])
-        epochs = 25
-        batch_size = 256
-        learning_rate = jnp.array(1/1e4)
         
         with tqdm.tqdm(range(1, epochs+1)) as pbar:
 
@@ -101,14 +123,18 @@ class TrainingLoop:
                     losses.append(loss) ## Record Loss
                     
                     if i%10 == 0:
-                        save_model(params)
+                        save('model', params)
 
                 pbar.set_description("CrossEntropy Loss : {:.3f}".format(jnp.array(losses).mean()))
 
-        plt.plot(losses)
+        fig, ax = plt.subplots(1,1, figsize=(12,8))
+        ax.plot(losses)
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('CrossEntropy Loss')
         plt.savefig(os.path.join('plots', 'loss.jpg'))
-        plt.close()
+        plt.close(fig)
 
+        save('model', params)
         return params
 
     def MakePredictions(self, weights, input_data, batch_size=32):

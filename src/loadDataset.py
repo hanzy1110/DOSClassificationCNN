@@ -54,7 +54,7 @@ def imbalanceDataset(selectedClases:Sequence[int],
     labelTupleMap = getLabelTupleMap(dataDict)
     for label in selectedClases:
         tuples = labelTupleMap.pop(label)
-        print(len(tuples))
+        # print(len(tuples))
         labelTupleMap[label] = tuples[:maxThresh]
 
     return labelTupleMap
