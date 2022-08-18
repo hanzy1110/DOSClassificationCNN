@@ -1,0 +1,57 @@
+Traceback (most recent call last):
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/api_util.py", line 184, in argnums_partial_except
+    hash(static_arg)
+TypeError: unhashable type: 'DeviceArray'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "dosTest.py", line 12, in <module>
+    main()
+  File "dosTest.py", line 9, in main
+    dos.mainLoop()
+  File "/home/blueman69/Upwork/DOSClassificationCNN/src/dosImp.py", line 152, in mainLoop
+    images, neighbors = self.vNeighbor(images, db, half_db_norms, self.kj[label])
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/api.py", line 1488, in vmap_f
+    ).call_wrapped(*args_flat)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/linear_util.py", line 168, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/blueman69/Upwork/DOSClassificationCNN/src/dosImp.py", line 115, in <lambda>
+    self.vNeighbor = jax.vmap(lambda image, db, norms, kj: getNeighbors(image, db, norms,kj, self.applyEmbedder),
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/api.py", line 466, in cache_miss
+    fun, static_argnums, static_argnames, donate_argnums, args, kwargs)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/api.py", line 351, in _prepare_jit
+    f, args = argnums_partial_except(f, static_argnums, args, allow_invalid=True)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/jax/_src/api_util.py", line 187, in argnums_partial_except
+    "Non-hashable static arguments are not supported, as this can lead "
+jax._src.traceback_util.UnfilteredStackTrace: ValueError: Non-hashable static arguments are not supported, as this can lead to unexpected cache-misses. Static argument (index 1) of type <class 'jaxlib.xla_extension.DeviceArray'> for function getNeighbors is non-hashable.
+
+The stack trace below excludes JAX-internal frames.
+The preceding is the original exception that occurred, unmodified.
+
+--------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/pudb/__init__.py", line 148, in runscript
+    dbg._runscript(mainpyfile)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/site-packages/pudb/debugger.py", line 514, in _runscript
+    self.run(statement)
+  File "/home/blueman69/anaconda3/envs/dataSc/lib/python3.7/bdb.py", line 578, in run
+    exec(cmd, globals, locals)
+  File "<string>", line 1, in <module>
+  File "dosTest.py", line 12, in <module>
+    main()
+  File "dosTest.py", line 9, in main
+    dos.mainLoop()
+  File "/home/blueman69/Upwork/DOSClassificationCNN/src/dosImp.py", line 152, in mainLoop
+    images, neighbors = self.vNeighbor(images, db, half_db_norms, self.kj[label])
+  File "/home/blueman69/Upwork/DOSClassificationCNN/src/dosImp.py", line 115, in <lambda>
+    self.vNeighbor = jax.vmap(lambda image, db, norms, kj: getNeighbors(image, db, norms,kj, self.applyEmbedder),
+ValueError: Non-hashable static arguments are not supported, as this can lead to unexpected cache-misses. Static argument (index 1) of type <class 'jaxlib.xla_extension.DeviceArray'> for function getNeighbors is non-hashable.

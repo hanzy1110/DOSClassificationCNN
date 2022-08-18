@@ -70,12 +70,12 @@ class TrainingLoop:
     def __init__(self, CNN, selectedClases):
         self.conv_net = hk.transform(CNN)
         self.rng = jax.random.PRNGKey(42) ## Reproducibility ## Initializes model with same weights each time.
-        self.getDataset(selectedClases)
+        self.getDataset(selectedClases, maxThresh=-1)
         params = self.conv_net.init(self.rng, self.X_train[:5])
 
-    def getDataset(self,selectedClases):
+    def getDataset(self,selectedClases, maxThresh):
         dataDict = loadDataset()
-        labelTupleMap = imbalanceDataset(selectedClases, dataDict, -1)
+        labelTupleMap = imbalanceDataset(selectedClases, dataDict, maxThresh=maxThresh)
         finalDS = flattenDataset(labelTupleMap)
         auxX = np.array([x.getImage() for x in finalDS])
         auxY = np.array([x.getLabel() for x in finalDS])

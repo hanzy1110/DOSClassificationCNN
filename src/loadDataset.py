@@ -4,20 +4,25 @@ import jax.numpy as jnp
 from dataclasses import dataclass
 
 from tensorflow import keras
-from typing import Sequence, Dict
+from typing import Sequence, Dict, NamedTuple
 
 from functools import reduce
 from operator import iconcat
 
-@dataclass
-class TrainingTuple:
+class TrainingTuple(NamedTuple):
     image:jnp.ndarray
     label:jnp.ndarray
 
-    def getImage(self):
-        return jnp.array(self.image)
-    def getLabel(self):
-        return jnp.array(self.label)
+class OverloadedTrainingTuple(NamedTuple):
+    image:jnp.DeviceArray
+    label:jnp.DeviceArray
+    neighbors:jnp.DeviceArray
+
+class OverSampledTrainingTuple(NamedTuple):
+    image:jnp.DeviceArray
+    label:jnp.DeviceArray
+    neighbors:jnp.DeviceArray
+    weightVector:jnp.DeviceArray
 
 def toTraininTuple(image, label):
     return TrainingTuple(image, label)
