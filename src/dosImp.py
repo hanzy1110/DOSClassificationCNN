@@ -50,6 +50,10 @@ def applyEmbedder(x):
     embedder = Embedder()
     return embedder(x)
 
+def applyClassifier(x):
+    classifier = Classifier()
+    return classifier(x)
+
 def computeVYJ(label, 
                labelEmbeddingMap:Dict[int,Sequence[jnp.DeviceArray]], 
                labelTupleMap:Dict[int,Sequence[TrainingTuple]]):
@@ -103,8 +107,6 @@ class DOSProcedure:
 
         # must get a way to refresh params at each iteration
         self.applyEmbedder = lambda x: apply(params, rng, x)
-        self.vEmbedder = jax.vmap(self.applyEmbedder, in_axes=(0,))
-        self.vOverSampler = jax.vmap(self.toOverSampledTuple, in_axes=(None,0))    
         
     def getDataset(self,selectedClases, maxThresh):
 
@@ -120,12 +122,12 @@ class DOSProcedure:
         # self.X_test = dataDict['test']['X']
         # self.Y_test = dataDict['test']['Y']
 
-    def mainLoop(self, params=None):
+    def mainLoop(self,  applyEmbedder, params=None):
 
         if params:
-            init, applyEmbedder = hk.transform(self.embedder)
+            # init, applyEmbedder = hk.transform(self.embedder)
             rng = jax.random.PRNGKey(30)
-            params = init(rng, self.X_train[:5])
+            _ = applyEmbedder.init(rng, self.X_train[:5])
             self.applyEmbedder = lambda x: applyEmbedder(params, rng, x)
 
         for label, tups in self.labelTupleMap.items():
@@ -154,6 +156,7 @@ class DOSProcedure:
                 # self.labelOverSampledTupsMap[label] = functools.reduce(iconcat, aux, []) 
                 self.labelOverSampledTupsMap[label] = aux
 
+        return flattenDataset(self.labelOverSampledTupsMap)
     
     @staticmethod
     def toOverSampledTuple(tup:OverloadedTrainingTuple, wj):

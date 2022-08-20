@@ -77,8 +77,8 @@ class TrainingLoop:
         dataDict = loadDataset()
         labelTupleMap = imbalanceDataset(selectedClases, dataDict, maxThresh=maxThresh)
         finalDS = flattenDataset(labelTupleMap)
-        auxX = np.array([x.getImage() for x in finalDS])
-        auxY = np.array([x.getLabel() for x in finalDS])
+        auxX = np.array([x.image for x in finalDS])
+        auxY = np.array([x.label for x in finalDS])
         self.X_train = jnp.array(auxX)
         self.Y_train = jnp.array(auxY)
         self.X_test = dataDict['test']['X']
