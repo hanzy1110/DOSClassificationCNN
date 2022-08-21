@@ -61,7 +61,7 @@ def imbalanceDataset(selectedClases:Sequence[int],
         tuples = labelTupleMap.pop(label)
         # print(len(tuples))
         labelTupleMap[label] = tuples[:maxThresh]
-
+        print(f'Number Tuples:{len(labelTupleMap[label])}')
     return labelTupleMap
 
 def flattenDataset(labelTupleMap):

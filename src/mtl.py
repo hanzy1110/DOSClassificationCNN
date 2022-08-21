@@ -56,20 +56,21 @@ def normParam(preds, neighbors):
     return jnp.sum(jnp.exp(-1*jnp.linalg.norm(diff, axis=0)**2))
 
 @jax.jit
-def rhoV(embedding, neighbor):
-    return jnp.exp(-jnp.linalg.norm(embedding-neighbor)**2)
+def rhoV(embedding, neighbor, weight):
+    return jnp.exp(-weight * jnp.linalg.norm(embedding-neighbor)**2)
 
 @jax.jit
-def embedderLoss(preds, neighbors, actual):
+def embedderLoss(preds, neighbors, actual, weight):
     diff = neighbors-preds
-    return jnp.sum(jnp.linalg.norm(diff, axis=0)**2)
+    # return jnp.sum(jnp.linalg.norm(diff, axis=0)**2)
+    return jnp.dot(jnp.linalg.norm(diff, axis=0)**2, weight)
 
 @jax.jit
-def classifierLoss(embedding, actual, neighbors, neighbors_preds, classes=10):
+def classifierLoss(embedding, actual, neighbors, neighbors_preds, weights, classes=10):
     # Everything is batched!!!!!
     # We need the mappings of the neighbors!
-    vRho = jax.vmap(lambda x: rhoV(embedding, x), in_axes=0)
-    rhos = vRho(neighbors)
+    vRho = jax.vmap(lambda x, y: rhoV(embedding, x, y), in_axes=(0,0))
+    rhos = vRho(neighbors, weights)
     Z = normParam(embedding, neighbors)
     vCrossEnt = jax.vmap(lambda x: CrossEntropyLoss(x, actual), in_axes=0)
     # H(g(v)) for each neighbor
@@ -89,7 +90,7 @@ class TrainingLoopDOS:
         self.Y_test = self.dosProc.Y_test
         self.wasInitiated = False
 
-    def instatiateNets(self, applyEmbedder, applyClassifier, load_prev:bool):
+    def instatiateNets(self, applyEmbedder, applyClassifier, load_prev:bool, ckpt_dir='model'):
 
         self.rng = jax.random.PRNGKey(42)
 
@@ -105,7 +106,7 @@ class TrainingLoopDOS:
 
         self.wasInitiated = True
         if load_prev:
-            paramsClassifier, paramsEmbedder = self.restore_model()
+            paramsClassifier, paramsEmbedder = self.restore_model(ckpt_dir)
 
         return paramsClassifier, paramsEmbedder
 
@@ -114,23 +115,24 @@ class TrainingLoopDOS:
         return OSTs[start:end]
 
     def getModel(self, applyEmbedder, applyClassifier, 
-                 epochs=30, batch_size=256, learning_rate=1/1e4):
+                 epochs=30, batch_size=256, learning_rate=1/1e4, ckpt_dir='model'):
 
         if os.path.exists(os.path.join('model',  'classifier', 'arrays.npy')):
-            self.params_classifier, self.params_embedder = self.restore_model()
+            self.params_classifier, self.params_embedder = self.restore_model(ckpt_dir)
         else:
             self.params_classifier, self.params_embedder = self.trainingLoop(applyEmbedder, applyClassifier,
                                                                              epochs=epochs, 
                                                                             batch_size=batch_size, 
-                                                                            learning_rate=learning_rate)
+                                                                            learning_rate=learning_rate,
+                                                                             ckpt_dir=ckpt_dir)
 
-    def save_model(self, params_classifier, params_embedder):
-        save(os.path.join('model', 'classifier'), params_classifier)
-        save(os.path.join('model', 'embedder'), params_embedder)
+    def save_model(self, params_classifier, params_embedder, ckpt_dir='model'):
+        save(os.path.join(ckpt_dir, 'classifier'), params_classifier)
+        save(os.path.join(ckpt_dir, 'embedder'), params_embedder)
 
-    def restore_model(self):
-        params_classifier = restore(os.path.join('model', 'classifier'))
-        params_embedder = restore(os.path.join('model', 'embedder'))
+    def restore_model(self, ckpt_dir='model'):
+        params_classifier = restore(os.path.join(ckpt_dir, 'classifier'))
+        params_embedder = restore(os.path.join(ckpt_dir, 'embedder'))
         return params_classifier, params_embedder
 
     # @partial(jax.jit, static_argnums=0)
@@ -139,11 +141,13 @@ class TrainingLoopDOS:
         images = jnp.array([t.image for t in batchData])
         neighbors = jnp.array([t.neighbors for t in batchData])
         labels = jnp.array([t.label for t in batchData])
+        weights = jnp.array([t.weightVector for t in batchData])
 
         embeddings = self.applyEmbedder.apply(params, self.rng, images)
-        vLoss = jax.vmap(embedderLoss, in_axes=(0,0,0))
+        vLoss = jax.vmap(embedderLoss, in_axes=(0,0,0,0))
 
-        return jnp.sum(vLoss(embeddings, neighbors, labels))
+        # Take the average over the batch
+        return jnp.sum(vLoss(embeddings, neighbors, labels, weights))/images.shape[0]
 
     # @partial(jax.jit, static_argnums=0)
     def evaluateLossClassifier(self, params_classifier, params_embedder,
@@ -152,6 +156,7 @@ class TrainingLoopDOS:
         images = jnp.array([t.image for t in batchData])
         neighbors = jnp.array([t.neighbors for t in batchData])
         labels = jnp.array([t.label for t in batchData])
+        weights = jnp.array([t.weightVector for t in batchData])
 
         embeddings = self.applyEmbedder.apply(params_embedder, self.rng, images)
 
@@ -160,14 +165,15 @@ class TrainingLoopDOS:
         # neighbors_preds = self.applyClassifier.apply(params_classifier, self.rng, neighbors)
         neighbors_preds = vClass(neighbors)
         # preds = self.applyClassifier.apply(params_classifier, self.rng, embeddings)
-        vLoss = jax.vmap(classifierLoss, in_axes=(0,0,0,1))
+        vLoss = jax.vmap(classifierLoss, in_axes=(0,0,0,1,0))
 
-        return jnp.sum(vLoss(embeddings, labels, neighbors, neighbors_preds))
+        return jnp.sum(vLoss(embeddings, labels, neighbors, neighbors_preds, weights))
 
     def trainingLoop(self,applyEmbedder, applyClassifier, 
-                     epochs=30, batch_size=256, learning_rate=1/1e4):
+                     epochs=30, batch_size=256, learning_rate=1/1e4, ckpt_dir='model'):
 
         # params = self.conv_net.init(self.rng, self.X_train[:5])
+        print("Starting Training...")
         if not self.wasInitiated:
             params_classifier, params_embedder = self.instatiateNets(applyEmbedder, 
                                                                      applyClassifier, 
@@ -208,7 +214,7 @@ class TrainingLoopDOS:
                     losses_embedder.append(loss_embedder) ## Record Loss
 
                 if i%10 == 0:
-                    self.save_model(params_classifier, params_embedder)
+                    self.save_model(params_classifier, params_embedder, ckpt_dir=ckpt_dir)
 
                 pbar.set_description("CrossEntropy Loss : {:.3f}".format(jnp.array(losses_embedder).mean()))
 
@@ -220,18 +226,18 @@ class TrainingLoopDOS:
         plt.savefig(os.path.join('plots', 'loss.jpg'))
         plt.close(fig)
 
-        self.save_model(params_classifier, params_embedder)
+        self.save_model(params_classifier, params_embedder, ckpt_dir=ckpt_dir)
         return params_embedder, params_classifier
 
     def MakePredictions(self, params_classifier, params_embedder, input_data, batch_size=32):
         batches = jnp.arange((input_data.shape[0]//batch_size)+1) ### Batch Indices
 
         preds = []
-        for batch in batches:
+        for batch in batches[:-1]:
             if batch != batches[-1]:
                 start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
-            else:
-                start, end = int(batch*batch_size), None
+            # else:
+            #     start, end = int(batch*batch_size), None
 
             X_batch = input_data[start:end]
 
@@ -240,10 +246,10 @@ class TrainingLoopDOS:
 
         return preds
 
-    def predictionAndTest(self):
+    def predictionAndTest(self, ckpt_dir='model'):
         if not self.wasInitiated:
             _, _ = self.instatiateNets(applyEmbedder, applyClassifier, load_prev=False)       
-        params_classifier, params_embedder = self.restore_model()
+        params_classifier, params_embedder = self.restore_model(ckpt_dir=ckpt_dir)
 
         train_preds = self.MakePredictions(params_classifier, params_embedder, self.X_train, 256)
         train_preds = jnp.concatenate(train_preds).squeeze()
@@ -254,7 +260,7 @@ class TrainingLoopDOS:
         test_preds = test_preds.argmax(axis=1)
 
         print("Train Accuracy : {:.3f}".format(accuracy_score(self.Y_train, train_preds)))
-        print("Test  Accuracy : {:.3f}".format(accuracy_score(self.Y_test, test_preds)))
+        print("Test  Accuracy : {:.3f}".format(accuracy_score(self.Y_test[:test_preds.shape[0]], test_preds)))
 
         print("Test Classification Report ")
-        print(classification_report(self.Y_test, test_preds))
+        print(classification_report(self.Y_test[:test_preds.shape[0]], test_preds))

@@ -21,6 +21,7 @@ def UpdateWeights(weights,gradients, learning_rate):
 
 class TrainingLoop(TrainingLoopDOS):
     def __init__(self, selectedClases, kj, rj, maxThresh):
+        print(f"Selected Classes were: {selectedClases}")
         super().__init__(selectedClases, kj, rj, maxThresh)
 
     def evaluateLoss(self, params_embedder, params_classifier, X_batch, Y_batch):
@@ -39,11 +40,13 @@ class TrainingLoop(TrainingLoopDOS):
                 batches = jnp.arange((self.X_train.shape[0]//batch_size)+1) ### Batch Indices
 
                 losses = [] ## Record loss of each batch
-                for batch in batches:
+                for batch in batches[:-1]:
                     if batch != batches[-1]:
                         start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
                     else:
-                        start, end = int(batch*batch_size), None
+                        # continue
+                        # start, end = int(batch*batch_size), None
+                        pass
 
                     X_batch, Y_batch = self.X_train[start:end], self.Y_train[start:end] ## Single batch of data
 

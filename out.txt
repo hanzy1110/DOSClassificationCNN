@@ -1,0 +1,28 @@
+Selected Classes were: [4, 6, 8]
+Getting Dataset...
+Number Tuples:80
+Number Tuples:80
+Number Tuples:80
+Shapes of training Data
+X Train shape: (42240, 28, 28, 1)
+Y Train shape: (42240,)
+Train Accuracy : 0.846
+Test  Accuracy : 0.740
+Test Classification Report 
+              precision    recall  f1-score   support
+
+         0.0       0.78      0.77      0.77      1000
+         1.0       0.97      0.95      0.96       997
+         2.0       0.62      0.69      0.65       999
+         3.0       0.56      0.97      0.71       999
+         4.0       0.57      0.63      0.60       999
+         5.0       0.95      0.81      0.87       997
+         6.0       0.64      0.18      0.28       999
+         7.0       0.89      0.71      0.79       999
+         8.0       0.97      0.70      0.81       997
+         9.0       0.69      1.00      0.82       998
+
+    accuracy                           0.74      9984
+   macro avg       0.76      0.74      0.73      9984
+weighted avg       0.76      0.74      0.73      9984
+

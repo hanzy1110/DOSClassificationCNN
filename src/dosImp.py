@@ -75,11 +75,15 @@ def l2_ann(query, dataBase, halfDataBaseNorms, k=10, recall_target=0.95):
 # @jax.jit
 @functools.partial(jax.jit, static_argnames=["k"])
 def getNeighbors(db, half_db_norms, k, query:jnp.DeviceArray):
-    _,neighborsIDX = l2_ann(query=query, 
-                            dataBase=db, 
-                            halfDataBaseNorms=half_db_norms, 
-                            k=k, recall_target=0.95)
-    return jnp.array([db[idx] for idx in neighborsIDX])
+
+    if k==0:
+        return query
+    else:
+        _,neighborsIDX = l2_ann(query=query, 
+                                dataBase=db, 
+                                halfDataBaseNorms=half_db_norms, 
+                                k=k, recall_target=0.95)
+        return jnp.array([db[idx] for idx in neighborsIDX])
 
 def getRjVectors(rj, kj):
     key = jax.random.PRNGKey(33)
@@ -109,7 +113,7 @@ class DOSProcedure:
         self.applyEmbedder = lambda x: apply(params, rng, x)
         
     def getDataset(self,selectedClases, maxThresh):
-
+        print("Getting Dataset...")
         dataDict = loadDataset()
         self.labelTupleMap = imbalanceDataset(selectedClases, dataDict, maxThresh)
         finalDS = flattenDataset(self.labelTupleMap)
@@ -118,7 +122,11 @@ class DOSProcedure:
         auxY = np.array([x.label for x in finalDS])
         self.X_train = jnp.array(auxX)
         self.Y_train = jnp.array(auxY)
-        
+
+        print("Shapes of training Data")
+        print(f'X Train shape: {self.X_train.shape}')
+        print(f'Y Train shape: {self.Y_train.shape}')
+
         self.X_test = dataDict['test']['X']
         self.Y_test = dataDict['test']['Y']
 
