@@ -119,8 +119,8 @@ class DOSProcedure:
         self.X_train = jnp.array(auxX)
         self.Y_train = jnp.array(auxY)
         
-        # self.X_test = dataDict['test']['X']
-        # self.Y_test = dataDict['test']['Y']
+        self.X_test = dataDict['test']['X']
+        self.Y_test = dataDict['test']['Y']
 
     def mainLoop(self,  applyEmbedder, params=None):
 
@@ -128,7 +128,7 @@ class DOSProcedure:
             # init, applyEmbedder = hk.transform(self.embedder)
             rng = jax.random.PRNGKey(30)
             _ = applyEmbedder.init(rng, self.X_train[:5])
-            self.applyEmbedder = lambda x: applyEmbedder(params, rng, x)
+            self.applyEmbedder = lambda x: applyEmbedder.apply(params, rng, x)
 
         for label, tups in self.labelTupleMap.items():
             # self.labelEmbeddingMap[label] = jnp.array([self.tupleToEmbedding(x) for x in tups])
