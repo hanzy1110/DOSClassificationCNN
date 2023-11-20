@@ -1,4 +1,5 @@
 import jax
+from jax import Array
 import jax.numpy as jnp
 import numpy as np
 import haiku as hk
@@ -55,7 +56,7 @@ def applyClassifier(x):
     return classifier(x)
 
 def computeVYJ(label, 
-               labelEmbeddingMap:Dict[int,Sequence[jnp.DeviceArray]], 
+               labelEmbeddingMap:Dict[int,Sequence[Array]],
                labelTupleMap:Dict[int,Sequence[TrainingTuple]]):
     
     aux = np.array([applyEmbedder(x.image) for x in labelTupleMap[label]])
@@ -74,7 +75,7 @@ def l2_ann(query, dataBase, halfDataBaseNorms, k=10, recall_target=0.95):
 
 # @jax.jit
 @functools.partial(jax.jit, static_argnames=["k"])
-def getNeighbors(db, half_db_norms, k, query:jnp.DeviceArray):
+def getNeighbors(db, half_db_norms, k, query:Array):
 
     if k==0:
         return query

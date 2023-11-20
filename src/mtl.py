@@ -123,8 +123,7 @@ class TrainingLoopDOS:
             self.params_classifier, self.params_embedder = self.trainingLoop(applyEmbedder, applyClassifier,
                                                                              epochs=epochs, 
                                                                             batch_size=batch_size, 
-                                                                            learning_rate=learning_rate,
-                                                                             ckpt_dir=ckpt_dir)
+                                                                            learning_rate=learning_rate)
 
     def save_model(self, params_classifier, params_embedder, ckpt_dir='model'):
         save(os.path.join(ckpt_dir, 'classifier'), params_classifier)
@@ -233,11 +232,12 @@ class TrainingLoopDOS:
         batches = jnp.arange((input_data.shape[0]//batch_size)+1) ### Batch Indices
 
         preds = []
-        for batch in batches[:-1]:
+        # for batch in batches[:-1]:
+        for batch in batches:
             if batch != batches[-1]:
                 start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
-            # else:
-            #     start, end = int(batch*batch_size), None
+            else:
+                start, end = int(batch*batch_size), None
 
             X_batch = input_data[start:end]
 

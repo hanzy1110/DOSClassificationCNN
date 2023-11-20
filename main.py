@@ -9,9 +9,10 @@ def main(epochs, batch_size, maxThresh, learning_rate=0.0001):
     learning_rate=float(learning_rate)
 
     # selectedClases = range(10)
-    selectedClases = [4,6,8]
+    # selectedClases = [4,6,8]
+    selectedClases = []
     kj = {i:0 for i in range(10)}
-    rj = {i:2 for i in range(10)}
+    rj = {i:0 for i in range(10)}
 
     initialTrainer = TrainingLoop(selectedClases, kj, rj, maxThresh)
     initialTrainer.getModel(applyEmbedder, applyClassifier,
