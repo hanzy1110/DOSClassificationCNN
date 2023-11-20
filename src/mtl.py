@@ -236,8 +236,8 @@ class TrainingLoopDOS:
         for batch in batches:
             if batch != batches[-1]:
                 start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
-            # else:
-            #     start, end = int(batch*batch_size), None
+            else:
+                start, end = int(batch*batch_size), None
 
             X_batch = input_data[start:end]
 
