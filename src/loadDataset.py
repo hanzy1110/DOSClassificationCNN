@@ -37,7 +37,8 @@ def getLabelTupleMap(dataDict):
 
     trainingTuples = [toTraininTuple(image,label) for image, label in zip(X_train,Y_train)]
     aux = {}
-    for label in range(10):
+    # TODO add
+    for label in range(100):
         aux[label] = [tup for tup in trainingTuples if tup.label==label]
 
     return aux
