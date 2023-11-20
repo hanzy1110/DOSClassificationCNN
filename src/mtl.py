@@ -232,7 +232,8 @@ class TrainingLoopDOS:
         batches = jnp.arange((input_data.shape[0]//batch_size)+1) ### Batch Indices
 
         preds = []
-        for batch in batches[:-1]:
+        # for batch in batches[:-1]:
+        for batch in batches:
             if batch != batches[-1]:
                 start, end = int(batch*batch_size), int(batch*batch_size+batch_size)
             # else:
