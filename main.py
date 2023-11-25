@@ -1,3 +1,4 @@
+#!/home/bm69/miniforge3/envs/fem_gp/bin/python
 import fire
 from src.mtl import TrainingLoopDOS
 from src.dosImp import ConvNet, applyEmbedder, applyClassifier
